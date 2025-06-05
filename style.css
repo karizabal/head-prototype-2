@@ -1,0 +1,91 @@
+/* style.css */
+
+/*──────────────────────────────────────────────────────────────────────────────
+  BASE STYLES
+──────────────────────────────────────────────────────────────────────────────*/
+
+body {
+  font: 100%/1.5 system-ui;
+  margin: 0;
+  padding: 0;
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  MAIN LAYOUT: HEAD ON LEFT, AXES PLOTS ON RIGHT
+──────────────────────────────────────────────────────────────────────────────*/
+
+#main-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+#head {
+  flex: 0 0 500px;
+}
+
+#head svg {
+  display: flex;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  AXES‐PLOTS AREA: make plots smaller and position label inside
+──────────────────────────────────────────────────────────────────────────────*/
+
+#axes-graphs {
+  flex: 0 0 300px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+#axes-graphs div {
+  position: relative; /* allow absolute positioning of label */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding-top: 1.5rem; /* space for label */
+}
+
+#axes-graphs div label {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+#axes-graphs svg {
+  flex: 1;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/*──────────────────────────────────────────────────────────────────────────────
+  TOOLTIP
+──────────────────────────────────────────────────────────────────────────────*/
+
+.d3-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  display: none;
+}
+
+
