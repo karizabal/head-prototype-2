@@ -3,24 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script type="module" src="app.js"></script>
+    <title>filtering</title>
     <link rel="stylesheet" href="style.css" />
-    <title>Head & Axes Plot Filter</title>
+    <script type="module" src="app.js"></script>
   </head>
   <body>
+    <!-- ──────────────── FILTER CONTROLS ──────────────── -->
+    <div id="controls">
+      <label for="group-filter">Group:</label>
+      <select id="group-filter"></select>
+
+      <label for="marker-filter">Marker:</label>
+      <select id="marker-filter"></select>
+
+      <label for="genre-filter">Genre:</label>
+      <select id="genre-filter">
+        <option value="silence">Silence</option>
+        <option value="salsa">Salsa</option>
+        <option value="meditation">Meditation</option>
+        <option value="edm">EDM</option>
+      </select>
+    </div>
+
     <div id="view-toggle"></div>
 
     <div id="main-container">
       <div id="head"></div>
 
+      <!-- AXES PLOTS: only one visible at a time -->
       <div id="axes-graphs">
-        <div id="xy-top" style="display: none">
+        <div id="xy-top" class="axes-container" style="display: none">
           <label>Top</label>
         </div>
-        <div id="yz-side" style="display: none">
+        <div id="yz-side" class="axes-container" style="display: none">
           <label>Side</label>
         </div>
-        <div id="xz-front" style="display: none">
+        <div id="xz-front" class="axes-container" style="display: none">
           <label>Front</label>
         </div>
       </div>
