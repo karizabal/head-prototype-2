@@ -163,41 +163,30 @@ function renderHead(containerSelector) {
 ───────────────────────────────────────────────────────────────────────────────*/
 function renderAxesPlot(containerId, data, xKey, yKey) {
   d3.select(`#${containerId}`).selectAll('svg').remove();
-  const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-  const width = 300 - margin.left - margin.right;
-  const height = 300 - margin.top - margin.bottom;
+  const aspectWidth = 500;
+  const aspectHeight = 500;
+
+  const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+  const innerWidth = aspectWidth - margin.left - margin.right;
+  const innerHeight = aspectHeight - margin.top - margin.bottom;
 
   const svg = d3
     .select(`#${containerId}`)
     .append('svg')
-    .attr(
-      'viewBox',
-      `0 0 ${width + margin.left + margin.right} ${
-        height + margin.top + margin.bottom
-      }`
-    )
+    .attr('viewBox', `0 0 ${aspectWidth} ${aspectHeight}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
     .style('width', '100%')
     .style('height', 'auto')
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const xExtent = d3.extent(data, (d) => d[xKey]);
-  const yExtent = d3.extent(data, (d) => d[yKey]);
-
-  const xScale = d3
-    .scaleLinear()
-    .domain([xExtent[0] - 10, xExtent[1] + 10])
-    .range([0, width]);
-
-  const yScale = d3
-    .scaleLinear()
-    .domain([yExtent[0] - 10, yExtent[1] + 10])
-    .range([height, 0]);
+  const xScale = d3.scaleLinear().domain([-50, 60]).range([0, innerWidth]);
+  const yScale = d3.scaleLinear().domain([-50, 60]).range([innerHeight, 0]);
 
   svg
     .append('text')
-    .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 5)
+    .attr('x', innerWidth / 2)
+    .attr('y', innerHeight + margin.bottom - 5)
     .attr('text-anchor', 'middle')
     .attr('font-size', '10px')
     .text(`${xKey}`);
@@ -205,7 +194,7 @@ function renderAxesPlot(containerId, data, xKey, yKey) {
   svg
     .append('text')
     .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
+    .attr('x', -innerHeight / 2)
     .attr('y', -margin.left + 12)
     .attr('text-anchor', 'middle')
     .attr('font-size', '10px')
@@ -213,7 +202,7 @@ function renderAxesPlot(containerId, data, xKey, yKey) {
 
   svg
     .append('g')
-    .attr('transform', `translate(0,${height})`)
+    .attr('transform', `translate(0,${innerHeight})`)
     .call(d3.axisBottom(xScale));
 
   svg.append('g').call(d3.axisLeft(yScale));
@@ -266,6 +255,112 @@ function renderAxesPlot(containerId, data, xKey, yKey) {
     .on('mouseout', () => {
       tooltip.style('display', 'none');
     });
+}
+
+/*───────────────────────────────────────────────────────────────────────────────
+  RENDER DISPLACEMENT GRAPH
+───────────────────────────────────────────────────────────────────────────────*/
+function renderDispGraph(data) {
+  d3.select('#disp-chart').selectAll('svg').remove();
+
+  const dispData = data.map((d, i) => ({
+    time_s: d.time_s,
+    disp: i === 0 ? 0 : Math.sqrt(d.x_mm ** 2 + d.y_mm ** 2 + d.z_mm ** 2),
+  }));
+
+  const genre = data[0]?.genre || 'silence';
+  const interp = genreToColor[genre] || d3.interpolateViridis;
+  const timeExtent = d3.extent(dispData, (d) => d.time_s);
+  const colorScale = d3.scaleSequential(interp).domain(timeExtent);
+
+  const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+  const width = 900 - margin.left - margin.right;
+  const height = 300 - margin.top - margin.bottom;
+
+  const svg = d3
+    .select('#disp-chart')
+    .append('svg')
+    .attr(
+      'viewBox',
+      `0 0 ${width + margin.left + margin.right} ${
+        height + margin.top + margin.bottom
+      }`
+    )
+    .style('width', '100%')
+    .style('height', 'auto')
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const xScale = d3.scaleLinear().domain(timeExtent).range([0, width]);
+  const yScale = d3.scaleLinear().domain([0, 55]).range([height, 0]);
+
+  svg
+    .append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(xScale).ticks(8));
+  svg.append('g').call(d3.axisLeft(yScale).ticks(5));
+
+  const line = d3
+    .line()
+    .x((d) => xScale(d.time_s))
+    .y((d) => yScale(d.disp));
+
+  dispPoints = svg
+    .selectAll('circle.disp-point')
+    .data(dispData)
+    .enter()
+    .append('circle')
+    .attr('class', 'disp-point')
+    .attr('cx', (d) => xScale(d.time_s))
+    .attr('cy', (d) => yScale(d.disp))
+    .attr('fill', (d) => colorScale(d.time_s))
+    .attr('r', 0)
+    .style('opacity', 0);
+
+  svg
+    .selectAll('circle.disp-hover')
+    .data(dispData)
+    .enter()
+    .append('circle')
+    .attr('class', 'disp-hover')
+    .attr('cx', (d) => xScale(d.time_s))
+    .attr('cy', (d) => yScale(d.disp))
+    .attr('r', 8)
+    .attr('fill', 'transparent')
+    .on('mouseover', (event, d) => {
+      tooltip
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 25}px`)
+        .style('display', 'block').html(`
+            <strong>time:</strong> ${d.time_s.toFixed(2)} s<br/>
+            <strong>disp:</strong> ${d.disp.toFixed(3)} mm
+          `);
+    })
+    .on('mousemove', (event) => {
+      tooltip
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 25}px`);
+    })
+    .on('mouseout', () => {
+      tooltip.style('display', 'none');
+    });
+
+  svg
+    .append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 5)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '12px')
+    .text('Time (s)');
+
+  svg
+    .append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '12px')
+    .text('Displacement (mm)');
 }
 
 /*───────────────────────────────────────────────────────────────────────────────
@@ -345,8 +440,8 @@ function renderMiniHead(containerSelector, view) {
 /*───────────────────────────────────────────────────────────────────────────────
   ANIMATION
 ───────────────────────────────────────────────────────────────────────────────*/
-function animateHeadTrajectory(headData) {
-  const f = 3.5;
+function animate(headData) {
+  const f = 1.5;
   const baseTranslate = [300, 300];
 
   if (axesPoints.length > 0) {
@@ -446,8 +541,6 @@ function initializeViewToggle() {
       .style('cursor', 'pointer')
       .on('click', function () {
         currentView = view;
-        d3.selectAll('.legend-item').classed('active', false);
-        d3.select(this).classed('active', true);
         updateView();
       });
 
@@ -462,116 +555,6 @@ function initializeViewToggle() {
 
   d3.select('.legend-item[data-view="front"]').classed('active', true);
 }
-
-/*───────────────────────────────────────────────────────────────────────────────
-  RENDER DISPLACEMENT GRAPH
-───────────────────────────────────────────────────────────────────────────────*/
-function renderDispGraph(data) {
-  d3.select('#disp-chart').selectAll('svg').remove();
-
-  const dispData = data.map((d, i) => ({
-    time_s: d.time_s,
-    disp: i === 0 ? 0 : Math.sqrt(d.x_mm ** 2 + d.y_mm ** 2 + d.z_mm ** 2),
-  }));
-
-  const genre = data[0]?.genre || 'silence';
-  const interp = genreToColor[genre] || d3.interpolateViridis;
-  const timeExtent = d3.extent(dispData, (d) => d.time_s);
-  const colorScale = d3.scaleSequential(interp).domain(timeExtent);
-
-  const margin = { top: 20, right: 20, bottom: 40, left: 50 };
-  const width = 900 - margin.left - margin.right;
-  const height = 300 - margin.top - margin.bottom;
-
-  const svg = d3
-    .select('#disp-chart')
-    .append('svg')
-    .attr(
-      'viewBox',
-      `0 0 ${width + margin.left + margin.right} ${
-        height + margin.top + margin.bottom
-      }`
-    )
-    .style('width', '100%')
-    .style('height', 'auto')
-    .append('g')
-    .attr('transform', `translate(${margin.left},${margin.top})`);
-
-  const dispExtent = [0, d3.max(dispData, (d) => d.disp)];
-
-  const xScale = d3.scaleLinear().domain(timeExtent).range([0, width]);
-  const yScale = d3.scaleLinear().domain(dispExtent).range([height, 0]);
-
-  svg
-    .append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(xScale).ticks(8));
-  svg.append('g').call(d3.axisLeft(yScale).ticks(5));
-
-  const line = d3
-    .line()
-    .x((d) => xScale(d.time_s))
-    .y((d) => yScale(d.disp));
-
-  dispPoints = svg
-    .selectAll('circle.disp-point')
-    .data(dispData)
-    .enter()
-    .append('circle')
-    .attr('class', 'disp-point')
-    .attr('cx', (d) => xScale(d.time_s))
-    .attr('cy', (d) => yScale(d.disp))
-    // use colorScale(d.time_s) instead of a fixed '#333'
-    .attr('fill', (d) => colorScale(d.time_s))
-    .attr('r', 0)
-    .style('opacity', 0);
-
-  svg
-    .selectAll('circle.disp-hover')
-    .data(dispData)
-    .enter()
-    .append('circle')
-    .attr('class', 'disp-hover')
-    .attr('cx', (d) => xScale(d.time_s))
-    .attr('cy', (d) => yScale(d.disp))
-    .attr('r', 8)
-    .attr('fill', 'transparent')
-    .on('mouseover', (event, d) => {
-      tooltip
-        .style('left', `${event.pageX + 10}px`)
-        .style('top', `${event.pageY - 25}px`)
-        .style('display', 'block').html(`
-            <strong>time:</strong> ${d.time_s.toFixed(2)} s<br/>
-            <strong>disp:</strong> ${d.disp.toFixed(3)} mm
-          `);
-    })
-    .on('mousemove', (event) => {
-      tooltip
-        .style('left', `${event.pageX + 10}px`)
-        .style('top', `${event.pageY - 25}px`);
-    })
-    .on('mouseout', () => {
-      tooltip.style('display', 'none');
-    });
-
-  svg
-    .append('text')
-    .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 5)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '12px')
-    .text('Time (s)');
-
-  svg
-    .append('text')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
-    .attr('y', -margin.left + 15)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '12px')
-    .text('Displacement (mm)');
-}
-
 /*───────────────────────────────────────────────────────────────────────────────
   UPDATE VIEW
 ───────────────────────────────────────────────────────────────────────────────*/
@@ -596,7 +579,7 @@ function updateView() {
     renderAxesPlot('yz-side', filteredData, 'y_mm', 'z_mm');
   }
   renderDispGraph(filteredData);
-  animateHeadTrajectory(filteredData);
+  animate(filteredData);
 }
 
 /*───────────────────────────────────────────────────────────────────────────────

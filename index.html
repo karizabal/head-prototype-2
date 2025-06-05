@@ -3,46 +3,89 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>filtering</title>
+    <title>Filtering App</title>
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="app.js"></script>
   </head>
+
   <body>
-    <div id="controls">
-      <label for="group-filter">Group:</label>
-      <select id="group-filter"></select>
-
-      <label for="marker-filter">Marker:</label>
-      <select id="marker-filter"></select>
-
-      <label for="genre-filter">Genre:</label>
-      <select id="genre-filter">
-        <option value="silence">Silence</option>
-        <option value="salsa">Salsa</option>
-        <option value="meditation">Meditation</option>
-        <option value="edm">EDM</option>
-      </select>
-    </div>
-
-    <div id="view-toggle"></div>
-
     <div id="main-container">
-      <div id="head"></div>
+      <!-- ───────────────────────────────────────────────────────────────────────
+           LEFT‐HAND FILTERS
+         ────────────────────────────────────────────────────────────────────── -->
+      <div id="filters">
+        <h3>Filters</h3>
 
-      <!-- AXES PLOTS: only one visible at a time -->
-      <div id="axes-graphs">
-        <div id="xy-top" class="axes-container" style="display: none">
-          <label>Top</label>
+        <div id="group-filter-container">
+          <label for="group-filter">Choose a Group:</label>
+          <select name="group" id="group-filter">
+            <option value="NM0001">NM0001</option>
+            <option value="NM0004">NM0004</option>
+            <option value="NM0011">NM0011</option>
+          </select>
         </div>
-        <div id="yz-side" class="axes-container" style="display: none">
-          <label>Side</label>
+
+        <div id="marker-filter-container">
+          <label for="marker-filter">Choose a Marker:</label>
+          <select name="marker" id="marker-filter">
+            <option value="S1">S1</option>
+            <option value="S2">S2</option>
+            <option value="S3">S3</option>
+            <option value="S4">S4</option>
+            <option value="S5">S5</option>
+            <option value="S6">S6</option>
+            <option value="S7">S7</option>
+            <option value="S8">S8</option>
+            <option value="S9">S9</option>
+            <option value="S10">S10</option>
+            <option value="S11">S11</option>
+            <option value="S12">S12</option>
+          </select>
         </div>
-        <div id="xz-front" class="axes-container" style="display: none">
-          <label>Front</label>
+
+        <div id="genre-filter-container">
+          <label for="genre-filter">Choose a Genre:</label>
+          <select name="genre" id="genre-filter">
+            <option value="silence">Silence</option>
+            <option value="salsa">Salsa</option>
+            <option value="meditation">Meditation</option>
+            <option value="edm">EDM</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ───────────────────────────────────────────────────────────────────────
+           RIGHT‐HAND MAIN CONTENT
+         ────────────────────────────────────────────────────────────────────── -->
+      <div id="content">
+        <!-- VIEW TOGGLE (Front/Top/Side) -->
+        <div id="view-toggle"></div>
+
+        <!-- TOP SECTION: head (right) + axes plots (left) -->
+        <div id="top-section">
+          <div id="axes-graphs">
+            <div id="xy-top" class="axes-container">
+              <label>Top</label>
+            </div>
+            <div id="yz-side" class="axes-container">
+              <label>Side</label>
+            </div>
+            <div id="xz-front" class="axes-container">
+              <label>Front</label>
+            </div>
+          </div>
+
+          <div id="head">
+            <!-- D3 will render the rotating head SVG here -->
+          </div>
+        </div>
+
+        <!-- BOTTOM SECTION: displacement chart (full width) -->
+        <div id="disp-chart-container">
+          <label>Displacement Over Time</label>
+          <div id="disp-chart"></div>
         </div>
       </div>
     </div>
-
-    <div id="disp-chart"></div>
   </body>
 </html>
