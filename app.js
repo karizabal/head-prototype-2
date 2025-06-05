@@ -3,12 +3,14 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 /*───────────────────────────────────────────────────────────────────────────────
   GLOBAL VARIABLES
 ───────────────────────────────────────────────────────────────────────────────*/
+let currentView = 'front';
+let allData = [];
+let filteredData = [];
+
 let projection, path, spherePath, graticulePath, eyes;
 let axesPoints = [];
-let currentView = 'front';
-let allData = []; // holds rows from NM0001, NM0004, NM0011
-let filteredData = []; // holds subset after filtering
 let headTimer = null;
+let dispPoints = null;
 
 /*───────────────────────────────────────────────────────────────────────────────
   GENRE COLOR ENCODING
@@ -19,6 +21,22 @@ const genreToColor = {
   meditation: d3.interpolateGreens,
   edm: d3.interpolateReds,
 };
+
+/*───────────────────────────────────────────────────────────────────────────────
+  TOOLTIP SETUP (for axes plot)
+───────────────────────────────────────────────────────────────────────────────*/
+const tooltip = d3
+  .select('body')
+  .append('div')
+  .attr('class', 'd3-tooltip')
+  .style('position', 'absolute')
+  .style('pointer-events', 'none')
+  .style('padding', '4px 8px')
+  .style('background', 'rgba(255,255,255,0.9)')
+  .style('border', '1px solid #ccc')
+  .style('border-radius', '4px')
+  .style('font-size', '12px')
+  .style('display', 'none');
 
 /*───────────────────────────────────────────────────────────────────────────────
   LOAD SINGLE CSV FILE (returns array)
@@ -45,7 +63,7 @@ function loadData(filename) {
 }
 
 /*───────────────────────────────────────────────────────────────────────────────
-  FILTER FUNCTION (from graphs.js)
+  FILTER FUNCTION
 ───────────────────────────────────────────────────────────────────────────────*/
 function getObjectsByValue(data, selectedGroup, selectedMarker, selectedGenre) {
   if (selectedGenre === 'silence') {
@@ -177,64 +195,6 @@ function renderAxesPlot(containerId, data, xKey, yKey) {
     .range([height, 0]);
 
   svg
-    .append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(xScale));
-
-  svg.append('g').call(d3.axisLeft(yScale));
-
-  // Determine color scale based on genre and time
-  const genre = data[0]?.genre || 'silence';
-  const interp = genreToColor[genre] || d3.interpolateViridis;
-  const timeExtent = d3.extent(data, (d) => d.time_s);
-  const colorScale = d3.scaleSequential(interp).domain(timeExtent);
-
-  // Plot points using colorScale
-  const pts = svg
-    .selectAll('circle.point')
-    .data(data)
-    .enter()
-    .append('circle')
-    .attr('class', 'point')
-    .attr('cx', (d) => xScale(d[xKey]))
-    .attr('cy', (d) => yScale(d[yKey]))
-    .attr('r', 0)
-    .attr('fill', (d) => colorScale(d.time_s))
-    .style('opacity', 0);
-
-  axesPoints.push(pts);
-
-  // Add hover targets for tooltips
-  svg
-    .selectAll('circle.hover-target')
-    .data(data)
-    .enter()
-    .append('circle')
-    .attr('class', 'hover-target')
-    .attr('cx', (d) => xScale(d[xKey]))
-    .attr('cy', (d) => yScale(d[yKey]))
-    .attr('r', 8)
-    .attr('fill', 'transparent')
-    .on('mouseover', (event, d) => {
-      tooltip
-        .style('left', `${event.pageX + 10}px`)
-        .style('top', `${event.pageY - 25}px`)
-        .style('display', 'block').html(`
-          <strong>${xKey}:</strong> ${d[xKey].toFixed(3)}<br/>
-          <strong>${yKey}:</strong> ${d[yKey].toFixed(3)}<br/>
-          <strong>time (s):</strong> ${d.time_s.toFixed(2)}
-        `);
-    })
-    .on('mousemove', (event) => {
-      tooltip
-        .style('left', `${event.pageX + 10}px`)
-        .style('top', `${event.pageY - 25}px`);
-    })
-    .on('mouseout', () => {
-      tooltip.style('display', 'none');
-    });
-
-  svg
     .append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 5)
@@ -250,6 +210,62 @@ function renderAxesPlot(containerId, data, xKey, yKey) {
     .attr('text-anchor', 'middle')
     .attr('font-size', '10px')
     .text(`${yKey}`);
+
+  svg
+    .append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(xScale));
+
+  svg.append('g').call(d3.axisLeft(yScale));
+
+  const genre = data[0]?.genre || 'silence';
+  const interp = genreToColor[genre] || d3.interpolateViridis;
+  const timeExtent = d3.extent(data, (d) => d.time_s);
+  const colorScale = d3.scaleSequential(interp).domain(timeExtent);
+
+  const pts = svg
+    .selectAll('circle.point')
+    .data(data)
+    .enter()
+    .append('circle')
+    .attr('class', 'point')
+    .attr('cx', (d) => xScale(d[xKey]))
+    .attr('cy', (d) => yScale(d[yKey]))
+    .attr('r', 0)
+    .attr('fill', (d) => colorScale(d.time_s))
+    .style('opacity', 0);
+
+  axesPoints.push(pts);
+
+  // TOOLTIPS
+  svg
+    .selectAll('circle.hover-target')
+    .data(data)
+    .enter()
+    .append('circle')
+    .attr('class', 'hover-target')
+    .attr('cx', (d) => xScale(d[xKey]))
+    .attr('cy', (d) => yScale(d[yKey]))
+    .attr('r', 8)
+    .attr('fill', 'transparent')
+    .on('mouseover', (event, d) => {
+      tooltip
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 25}px`)
+        .style('display', 'block').html(`
+            <strong>${xKey}:</strong> ${d[xKey].toFixed(3)}<br/>
+            <strong>${yKey}:</strong> ${d[yKey].toFixed(3)}<br/>
+            <strong>time (s):</strong> ${d.time_s.toFixed(2)}
+          `);
+    })
+    .on('mousemove', (event) => {
+      tooltip
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 25}px`);
+    })
+    .on('mouseout', () => {
+      tooltip.style('display', 'none');
+    });
 }
 
 /*───────────────────────────────────────────────────────────────────────────────
@@ -327,11 +343,18 @@ function renderMiniHead(containerSelector, view) {
 }
 
 /*───────────────────────────────────────────────────────────────────────────────
-  HEAD + AXES ANIMATION
+  ANIMATION
 ───────────────────────────────────────────────────────────────────────────────*/
 function animateHeadTrajectory(headData) {
   const f = 3.5;
   const baseTranslate = [300, 300];
+
+  if (axesPoints.length > 0) {
+    axesPoints[0].attr('r', 0).style('opacity', 0);
+  }
+  if (dispPoints) {
+    dispPoints.attr('r', 0).style('opacity', 0);
+  }
 
   if (headTimer) {
     headTimer.stop();
@@ -343,6 +366,9 @@ function animateHeadTrajectory(headData) {
 
   if (axesPoints.length > 0) {
     axesPoints[0].attr('r', 0).style('opacity', 0);
+  }
+  if (dispPoints) {
+    dispPoints.attr('r', 0).style('opacity', 0);
   }
 
   let i = 0;
@@ -378,6 +404,13 @@ function animateHeadTrajectory(headData) {
         axesPoints[0]
           .filter((_, idx) => idx === i)
           .attr('r', 3)
+          .style('opacity', 0.7);
+      }
+
+      if (dispPoints) {
+        dispPoints
+          .filter((_, idx) => idx === i)
+          .attr('r', 1.5)
           .style('opacity', 0.7);
       }
 
@@ -431,20 +464,113 @@ function initializeViewToggle() {
 }
 
 /*───────────────────────────────────────────────────────────────────────────────
-  TOOLTIP SETUP (unchanged)
+  RENDER DISPLACEMENT GRAPH
 ───────────────────────────────────────────────────────────────────────────────*/
-const tooltip = d3
-  .select('body')
-  .append('div')
-  .attr('class', 'd3-tooltip')
-  .style('position', 'absolute')
-  .style('pointer-events', 'none')
-  .style('padding', '4px 8px')
-  .style('background', 'rgba(255,255,255,0.9)')
-  .style('border', '1px solid #ccc')
-  .style('border-radius', '4px')
-  .style('font-size', '12px')
-  .style('display', 'none');
+function renderDispGraph(data) {
+  d3.select('#disp-chart').selectAll('svg').remove();
+
+  const dispData = data.map((d, i) => ({
+    time_s: d.time_s,
+    disp: i === 0 ? 0 : Math.sqrt(d.x_mm ** 2 + d.y_mm ** 2 + d.z_mm ** 2),
+  }));
+
+  const genre = data[0]?.genre || 'silence';
+  const interp = genreToColor[genre] || d3.interpolateViridis;
+  const timeExtent = d3.extent(dispData, (d) => d.time_s);
+  const colorScale = d3.scaleSequential(interp).domain(timeExtent);
+
+  const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+  const width = 900 - margin.left - margin.right;
+  const height = 300 - margin.top - margin.bottom;
+
+  const svg = d3
+    .select('#disp-chart')
+    .append('svg')
+    .attr(
+      'viewBox',
+      `0 0 ${width + margin.left + margin.right} ${
+        height + margin.top + margin.bottom
+      }`
+    )
+    .style('width', '100%')
+    .style('height', 'auto')
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const dispExtent = [0, d3.max(dispData, (d) => d.disp)];
+
+  const xScale = d3.scaleLinear().domain(timeExtent).range([0, width]);
+  const yScale = d3.scaleLinear().domain(dispExtent).range([height, 0]);
+
+  svg
+    .append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(xScale).ticks(8));
+  svg.append('g').call(d3.axisLeft(yScale).ticks(5));
+
+  const line = d3
+    .line()
+    .x((d) => xScale(d.time_s))
+    .y((d) => yScale(d.disp));
+
+  dispPoints = svg
+    .selectAll('circle.disp-point')
+    .data(dispData)
+    .enter()
+    .append('circle')
+    .attr('class', 'disp-point')
+    .attr('cx', (d) => xScale(d.time_s))
+    .attr('cy', (d) => yScale(d.disp))
+    // use colorScale(d.time_s) instead of a fixed '#333'
+    .attr('fill', (d) => colorScale(d.time_s))
+    .attr('r', 0)
+    .style('opacity', 0);
+
+  svg
+    .selectAll('circle.disp-hover')
+    .data(dispData)
+    .enter()
+    .append('circle')
+    .attr('class', 'disp-hover')
+    .attr('cx', (d) => xScale(d.time_s))
+    .attr('cy', (d) => yScale(d.disp))
+    .attr('r', 8)
+    .attr('fill', 'transparent')
+    .on('mouseover', (event, d) => {
+      tooltip
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 25}px`)
+        .style('display', 'block').html(`
+            <strong>time:</strong> ${d.time_s.toFixed(2)} s<br/>
+            <strong>disp:</strong> ${d.disp.toFixed(3)} mm
+          `);
+    })
+    .on('mousemove', (event) => {
+      tooltip
+        .style('left', `${event.pageX + 10}px`)
+        .style('top', `${event.pageY - 25}px`);
+    })
+    .on('mouseout', () => {
+      tooltip.style('display', 'none');
+    });
+
+  svg
+    .append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 5)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '12px')
+    .text('Time (s)');
+
+  svg
+    .append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '12px')
+    .text('Displacement (mm)');
+}
 
 /*───────────────────────────────────────────────────────────────────────────────
   UPDATE VIEW
@@ -469,12 +595,12 @@ function updateView() {
     d3.select('#xy-top').style('display', 'none');
     renderAxesPlot('yz-side', filteredData, 'y_mm', 'z_mm');
   }
-
+  renderDispGraph(filteredData);
   animateHeadTrajectory(filteredData);
 }
 
 /*───────────────────────────────────────────────────────────────────────────────
-  FILTER + RENDER LOGIC
+  FILTER AND RENDER LOGIC
 ───────────────────────────────────────────────────────────────────────────────*/
 function updateAxesGraph() {
   let selectedGroup = d3.select('#group-filter').property('value');
@@ -490,10 +616,8 @@ function updateAxesGraph() {
     );
     updateView();
   }
-
   applyFilters();
 
-  // attach listeners
   d3.select('#group-filter').on('change', function () {
     selectedGroup = d3.select(this).property('value');
     applyFilters();
