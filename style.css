@@ -194,3 +194,71 @@ body {
   font-size: 12px;
   display: none;
 }
+
+/* Genre‐displacement toggle styling */
+#genre-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+#genre-toggle label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 1rem;
+}
+
+#genre-toggle input[type='checkbox'] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  margin-right: 6px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+#genre-toggle input[type='checkbox']:checked {
+  background-color: currentColor;
+  border-color: currentColor;
+}
+
+#genre-toggle input[type='checkbox']:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 0;
+  left: 2px;
+  font-size: 14px;
+  line-height: 18px;
+  color: white;
+}
+
+/* Colors per genre */
+#genre-toggle input[value='silence'] {
+  color: #6baed6;
+}
+#genre-toggle input[value='salsa'] {
+  color: #fc8d59;
+}
+#genre-toggle input[value='meditation'] {
+  color: #74c476;
+}
+#genre-toggle input[value='edm'] {
+  color: #e34a33;
+}
+
+/* Line styling for the genre‐displacement chart */
+.genre-line {
+  stroke-width: 1.5;
+  opacity: 0.4;
+}
+.genre-line.highlight {
+  stroke-width: 3;
+  opacity: 1;
+}
